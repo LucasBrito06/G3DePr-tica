@@ -15,7 +15,7 @@ class Player:
         self.spriteSheet = pygame.image.load("Sprites/Walk.png")
         self.PlayerAnimations = []
 
-        self.speed = 1
+        self.speed = 0.3
 
         self.world_width = world_width
         self.world_height = world_height
@@ -75,7 +75,7 @@ class Player:
         screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
 
 
-class Enemy:
+class GameObj:
     def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders):
         self.x = x
         self.y = y

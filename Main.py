@@ -55,16 +55,17 @@ def draw_tiles(screen):
                 if tile == 'B':
                     screen.blit(tile_images[tile], (x * 64 - offset_x, y * 64 - offset_y))
                     colliders.append(pygame.Rect(x * 64 - offset_x, y * 64 - offset_y, 64, 64))
-
+    print(colliders)
+    
 def cameraUpdate(player):
     global camera
     camera.center = (player.x, player.y)
     camera.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
 
-def load(events):
+def load():
     global PlayerX, tile_map, prop_map
 
-    PlayerX = Classes.Player(100, 100, 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders)  # Initialize player with proper size and position
+    PlayerX = Classes.Player(65, 65, 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders)  # Initialize player with proper size and position
 
     tile_map = read('map.txt')
     prop_map = read('propMap.txt')
@@ -86,13 +87,17 @@ def draw(screen):
 
     pygame.display.flip()
 
-load(pygame.event.get())
-while True:
+load()
+
+while True:    
     events = pygame.event.get()
     for event in events:
         if event.type == QUIT:
             pygame.quit()
             sys.exit()
+        if pygame.key.get_pressed()[pygame.K_r]:
+            load()
+
 
     clock.tick(60)
     dt = clock.get_time()
