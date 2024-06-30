@@ -36,16 +36,16 @@ class Player:
         temp_x = self.x
         temp_y = self.y
 
-        if keys[pygame.K_RIGHT] and self.x < self.world_width - 100 + 32:
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d] and self.x < self.world_width - 100 + 32:
             self.x = self.x + self.speed * dt
             self.currAnim = 2
-        elif keys[pygame.K_LEFT] and self.x > 0:
+        if keys[pygame.K_LEFT] or keys[pygame.K_a] and self.x > 0:
             self.x = self.x - self.speed * dt
             self.currAnim = 3
-        elif keys[pygame.K_UP] and self.y > 0:
+        if keys[pygame.K_UP] or keys[pygame.K_w] and self.y > 0:
             self.y = self.y - self.speed * dt
             self.currAnim = 1
-        elif keys[pygame.K_DOWN] and self.y < self.world_height - 100 + 32:
+        if keys[pygame.K_DOWN] or keys[pygame.K_s] and self.y < self.world_height - 100 + 32:
             self.y = self.y + self.speed * dt
             self.currAnim = 0
 
@@ -73,7 +73,6 @@ class Player:
 
         # Draw Player
         screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
-
 
 class GameObj:
     def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders):
@@ -148,4 +147,3 @@ class GameObj:
 
         # Draw Player
         screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
-
