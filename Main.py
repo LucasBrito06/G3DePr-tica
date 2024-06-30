@@ -88,7 +88,6 @@ def draw(screen):
     pygame.display.flip()
 
 load()
-
 while True:    
     events = pygame.event.get()
     for event in events:
