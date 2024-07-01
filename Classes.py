@@ -17,6 +17,7 @@ class Player:
         self.PlayerAnimations = []
 
         self.speed = 0.3
+        self.score = 0
 
         self.world_width = world_width
         self.world_height = world_height
@@ -148,8 +149,6 @@ class Gun:
         # Get the current frame from the sprite sheet
         current_frame = self.spriteSheet.subsurface(self.Animations[self.currAnim])
         scaled_frame = pygame.transform.scale(current_frame, (int(self.Animations[self.currAnim].width * 1.3), int(self.Animations[self.currAnim].height * 1.3)))
-
-        print(self.angle)
 
         if(self.angle > 90) or self.angle < -90:
             scaled_frame = pygame.transform.flip(scaled_frame, False, True)

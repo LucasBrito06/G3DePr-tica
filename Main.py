@@ -20,9 +20,11 @@ tileset = pygame.image.load("Tiles/t.png")
 tileProp = pygame.image.load("Tiles/props.png")
 colliders = []
 
+
 clock = pygame.time.Clock()
 
 pygame.init()
+fonte = pygame.font.Font(None, 36)  # Inicializa a fonte
 some_other_rect = pygame.Rect(WIDTH // 2 + 20, HEIGHT // 2 + 20, 50, 50)
 
 def read(file_path):
@@ -60,6 +62,12 @@ def cameraUpdate(player):
     global camera
     camera.center = (player.x, player.y)
     camera.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
+    
+def draw_score(screen, score):
+    global fonte
+    
+    score_text = fonte.render("Score: " + str(score), True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))  # Desenha o texto na posição (10, 10)
 
 def load():
     global PlayerX, tile_map, prop_map, Gun
@@ -88,6 +96,8 @@ def draw(screen):
     PlayerX.show(screen, offset_x, offset_y)
     Gun.show(screen, offset_x, offset_y)
 
+    draw_score(screen, PlayerX.score)
+
     pygame.display.flip()
 
 load()
@@ -99,7 +109,6 @@ while True:
             sys.exit()
         if pygame.key.get_pressed()[pygame.K_r]:
             load()
-
 
     clock.tick(60)
     dt = clock.get_time()
