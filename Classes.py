@@ -92,6 +92,8 @@ class Gun:
 
         self.spriteSheet = pygame.image.load("Sprites/Gun.png")
         self.Animations = []
+        
+        self.score = 0
 
         self.shooting = False
         self.cooldown = 0
