@@ -37,21 +37,21 @@ class Player:
         temp_x = self.x
         temp_y = self.y
 
-        if keys[pygame.K_RIGHT] or keys[pygame.K_d] and self.x < self.world_width - 100 + 32:
+        if keys[pygame.K_d] and self.x < self.world_width - 100 + 32:
             self.x = self.x + self.speed * dt
             self.currAnim = 2
-        if keys[pygame.K_LEFT] or keys[pygame.K_a] and self.x > 0:
+        if keys[pygame.K_a] and self.x > 0:
             self.x = self.x - self.speed * dt
             self.currAnim = 3
-        if keys[pygame.K_UP] or keys[pygame.K_w] and self.y > 0:
+        if keys[pygame.K_w] and self.y > 0:
             self.y = self.y - self.speed * dt
             self.currAnim = 1
-        if keys[pygame.K_DOWN] or keys[pygame.K_s] and self.y < self.world_height - 100 + 32:
+        if keys[pygame.K_s] and self.y < self.world_height - 100 + 32:
             self.y = self.y + self.speed * dt
             self.currAnim = 0
 
         # Animation handling
-        if keys[pygame.K_RIGHT] or keys[pygame.K_LEFT] or keys[pygame.K_UP] or keys[pygame.K_DOWN]:
+        if keys[pygame.K_d] or keys[pygame.K_a] or keys[pygame.K_w] or keys[pygame.K_s]:
             if self.curr_frame_time >= 100:
                 self.curr_frame = (self.curr_frame + 1) % 4
                 self.curr_frame_time = 0
@@ -162,3 +162,21 @@ class Gun:
 
         # Draw the gun
         screen.blit(self.rotated_image, self.rotated_rect.topleft)
+
+
+class Bullet(pygame.sprite.Sprite):
+    def init(self, surf, pos, direction, groups):
+        super().init(groups)
+        self.image = surf 
+        self.rect = self.image.get_frect(center = pos)
+        self.spawn_time = pygame.time.get_ticks()
+        self.lifetime = 1000
+
+        self.direction = direction 
+        self.speed = 1200 
+
+    def update(self, dt):
+        self.rect.center += self.direction * self.speed * dt
+
+        if pygame.time.get_ticks() - self.spawn_time >= self.lifetime:
+            self.kill()
