@@ -7,7 +7,7 @@ WORLD_WIDTH, WORLD_HEIGHT = 1100, 1300
 
 # Set up display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Survival Game")
+pygame.display.set_caption("Survival The Apocalypse")
 
 # Camera setup
 camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
