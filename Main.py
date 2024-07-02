@@ -1,7 +1,5 @@
-import pygame
-import sys
+import pygame, sys, Classes
 from pygame.locals import QUIT
-import Classes
 
 # Constants
 WIDTH, HEIGHT = 1000, 700
@@ -9,7 +7,7 @@ WORLD_WIDTH, WORLD_HEIGHT = 1100, 1300
 
 # Set up display
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Box Camera Example")
+pygame.display.set_caption("Survival Game")
 
 # Camera setup
 camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
@@ -20,9 +18,15 @@ tileset = pygame.image.load("Tiles/Dungeon_Tileset.png")
 tileProp = pygame.image.load("Tiles/props.png")
 colliders = []
 
+heart_image = pygame.image.load("Sprites/heart.png")
+# Redimensionar a imagem do coração
+heart_image = pygame.transform.scale(heart_image, (40, 40))
+
 clock = pygame.time.Clock()
 
 pygame.init()
+fonteScore = pygame.font.Font(None, 48)  # Inicializa a fonte
+fonteObjective = pygame.font.Font(None, 40)  # Inicializa a fonte
 some_other_rect = pygame.Rect(WIDTH // 2 + 20, HEIGHT // 2 + 20, 50, 50)
 
 def read(file_path):
@@ -75,13 +79,36 @@ def cameraUpdate(player):
     global camera
     camera.center = (player.x, player.y)
     camera.clamp_ip(pygame.Rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT))
+    
+def draw_score(screen, score):
+    global fonteScore
+    
+    score_text = fonteScore.render("Kills: " + str(score), True, (255, 255, 255))
+    screen.blit(score_text, (10, 10))  # Desenha o texto na posição (10, 10)
 
+def draw_objective(screen):
+    global fonteObjective
+    
+    score_text = fonteObjective.render("Kill 10 enemies to win", True, (142, 195, 245))
+    screen.blit(score_text, (250, 10))
+    
+def draw_heart(screen, qtdHearts):
+    yHeart = 650
+    
+    for i in range(qtdHearts):
+        screen.blit(heart_image, (yHeart, 10))
+        yHeart += 50
+        
 def load():
     global PlayerX, tile_map, prop_map, Gun, bullets, tile_floor
 
     PlayerX = Classes.Player(65, 65, 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders)  # Initialize player with proper size and position
     
     Gun = Classes.Gun(PlayerX)
+
+    pygame.mixer.music.load("sound/music.wav")
+    pygame.mixer.music.play(-1)
+   
     bullets = pygame.sprite.Group()
 
     tile_map = read('map.txt')
@@ -109,6 +136,10 @@ def draw(screen):
     bullets.draw(screen)
     Gun.show(screen, offset_x, offset_y)
 
+    draw_score(screen, PlayerX.score)
+    draw_heart(screen, PlayerX.life)
+    draw_objective(screen)
+
     pygame.display.flip()
 
 load()
@@ -121,8 +152,7 @@ while True:
         if pygame.key.get_pressed()[pygame.K_r]:
             load()
 
-
-    print(bullets)
+    #print(bullets)
 
     clock.tick(60)
     dt = clock.get_time()
