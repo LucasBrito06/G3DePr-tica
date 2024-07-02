@@ -18,6 +18,7 @@ class Player:
 
         self.speed = 0.3
         self.score = 0
+        self.life = 3
 
         self.world_width = world_width
         self.world_height = world_height
@@ -98,6 +99,8 @@ class Gun:
         self.shooting = False
         self.cooldown = 0
         self.angle = 0
+        
+        
 
     def Rotation(self, offset_x, offset_y):
         # Rotate the gun on its own axis
@@ -155,15 +158,11 @@ class Gun:
         if(self.angle > 90) or self.angle < -90:
             scaled_frame = pygame.transform.flip(scaled_frame, False, True)
 
-
         self.rotated_image = pygame.transform.rotate(scaled_frame, self.angle)
         self.rotated_rect = self.rotated_image.get_rect(center=(self.x - offset_x, self.y - offset_y))
 
-
-
         # Draw the gun
         screen.blit(self.rotated_image, self.rotated_rect.topleft)
-
 
 class Bullet(pygame.sprite.Sprite):
     def init(self, surf, pos, direction, groups):
