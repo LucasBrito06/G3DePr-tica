@@ -2,7 +2,7 @@ import pygame
 import math
 
 class Player:
-    def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders):
+    def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders, Enemies, life):
         self.x = x
         self.y = y
         self.sizeX = sizeX
@@ -17,13 +17,16 @@ class Player:
         self.PlayerAnimations = []
 
         self.speed = 0.3
-        self.score = 0
-        self.life = 3
 
         self.world_width = world_width
         self.world_height = world_height
         self.colliders = colliders
+        self.Enemies = Enemies
 
+        self.life = life
+        
+        self.collider_jogador = pygame.Rect(self.x, self.y, self.sizeX, self.sizeY)
+    
     def handle(self, dt, offset_x, offset_y):
         keys = pygame.key.get_pressed()
 
@@ -42,7 +45,7 @@ class Player:
         if keys[pygame.K_d] and self.x < self.world_width - 100 + 32:
             self.x = self.x + self.speed * dt
             self.currAnim = 2
-        if keys[pygame.K_a] and self.x > 0:
+        if keys[pygame.K_a] and self.x > 32:
             self.x = self.x - self.speed * dt
             self.currAnim = 3
         if keys[pygame.K_w] and self.y > 0:
@@ -61,18 +64,28 @@ class Player:
         else:
             self.curr_frame = 3
 
-        collider_jogador = pygame.Rect(self.x + self.sizeX/2 - offset_x, self.y + self.sizeY/2 - offset_y, self.sizeX, self.sizeY)
+        self.collider_jogador = pygame.Rect(self.x + self.sizeX/2 - offset_x, self.y + self.sizeY/2 - offset_y, self.sizeX, self.sizeY)
 
-        if any(collider_jogador.colliderect(floor) for floor in self.colliders):
+        if any(self.collider_jogador.colliderect(obj) for obj in self.colliders):
             self.x = temp_x
             self.y = temp_y
-
+        
+        for enemy in self.Enemies:
+            if self.collider_jogador.colliderect(enemy.rect):
+                self.life -= 1
+                '''
+                if(self.x > 64 and self.x < self.world_width - 100 + 64):
+                    self.x += enemy.direction.x * 50
+                
+                if(self.y > 64 and self.y < self.world_height - 120 + 64):
+                    self.y += enemy.direction.y * 50
+                '''
     def show(self, screen, offset_x, offset_y):
         # Scaling the player image
         current_frame = self.spriteSheet.subsurface(self.PlayerAnimations[self.currAnim])
         scaled_frame = pygame.transform.scale(current_frame, (self.PlayerAnimations[self.currAnim].width * 2, self.PlayerAnimations[self.currAnim].height * 2))
 
-        pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(self.x + self.sizeX/2 - offset_x, self.y + self.sizeY/2 - offset_y, self.sizeX, self.sizeY))
+        pygame.draw.rect(screen, (0, 255, 0), self.collider_jogador)
 
         # Draw Player
         screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
@@ -93,14 +106,10 @@ class Gun:
 
         self.spriteSheet = pygame.image.load("Sprites/Gun.png")
         self.Animations = []
-        
-        self.score = 0
 
         self.shooting = False
         self.cooldown = 0
         self.angle = 0
-        
-        
 
     def Rotation(self, offset_x, offset_y):
         # Rotate the gun on its own axis
@@ -162,14 +171,14 @@ class Gun:
         current_frame = self.spriteSheet.subsurface(self.Animations[self.currAnim])
         scaled_frame = pygame.transform.scale(current_frame, (int(self.Animations[self.currAnim].width * 1.3), int(self.Animations[self.currAnim].height * 1.3)))
 
-        if(self.angle > 90) or self.angle < -90:
+        if self.angle > 90 or self.angle < -90:
             scaled_frame = pygame.transform.flip(scaled_frame, False, True)
 
         self.rotated_image = pygame.transform.rotate(scaled_frame, self.angle)
         self.rotated_rect = self.rotated_image.get_rect(center=(self.x - offset_x, self.y - offset_y))
 
         # Draw the gun
-        screen.blit(self.rotated_image, self.rotated_rect.topleft)
+        #screen.blit(self.rotated_image, self.rotated_rect.topleft)
 
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, pos, direction, size=10, color=(255, 0, 0)):
@@ -182,15 +191,27 @@ class Bullet(pygame.sprite.Sprite):
         self.spawn_time = pygame.time.get_ticks()
         self.lifetime = 1000
 
-    def update(self, dt):
+    def update(self, dt, *target_groups):
         # Move the bullet based on direction and speed
         self.rect.center += self.direction * self.speed * dt / 1000  # Corrected for dt
+        
+        for rect in target_groups:
+            for i in rect:
+                if self.rect.colliderect(i):
+                    if type(i) == Enemy: 
+                        i.life -= 1
+
+                    self.kill()  # Remove the bullet if it collides with any rect
+                    break
+        
         # Check if the bullet's lifetime has exceeded and remove it
         if pygame.time.get_ticks() - self.spawn_time >= self.lifetime:
             self.kill()  # Remove the sprite from all groups
 
+
+
 class Enemy:
-    def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders):
+    def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders, Player, bullets, life, sprite, color):
         self.x = x
         self.y = y
         self.sizeX = sizeX
@@ -201,64 +222,47 @@ class Enemy:
 
         self.currAnim = 0
 
-        self.spriteSheet = pygame.image.load("Sprites/Walk.png")
+        self.spriteSheet = sprite
         self.PlayerAnimations = []
-
-        self.speed = 0.3
-
+        self.speed = 0.01
+        self.anchor = Player
         self.world_width = world_width
         self.world_height = world_height
         self.colliders = colliders
+        self.stopping_distance = 10  # Distance at which the enemy stops to avoid overlapping
+        
+        self.tag = 'Enemy'
+        self.rect = self.rect = pygame.Rect(self.x , self.y, self.sizeX, self.sizeY)
+        self.direction = pygame.Vector2()
+        self.bullets = bullets
+        self.life = life
+        self.color = color
 
     def handle(self, dt, offset_x, offset_y):
-        keys = pygame.key.get_pressed()
+        
+        rel_x, rel_y = 0, 0
+        
+        # Calculate the vector to the player
+        if (self.x < self.world_width - 100 + 32) and (self.x > 0):
+            rel_x = self.anchor.x - 4 - self.x
 
-        # Animations
-        self.PlayerAnimations = [
-            pygame.Rect(self.curr_frame * 32, 0, 32, 32),        # DOWN
-            pygame.Rect(self.curr_frame * 32, 32, 32, 32),      # UP
-            pygame.Rect(self.curr_frame * 32, 64, 32, 32),  # LEFT
-            pygame.Rect(self.curr_frame * 32, 96, 32, 32)   # RIGHT
-        ]
+        if (self.y < self.world_height - 120 + 32) and (self.y > 0):
+            rel_y = self.anchor.y - 4 - self.y
+        
+        # Calculate the distance to the player
+        distance = math.sqrt(rel_x**2 + rel_y**2)
 
-        # Create a temporary position for testing collisions
-        temp_x = self.x
-        temp_y = self.y
+        # Check if the enemy is within the stopping distance
+        if distance > self.stopping_distance:
+            # Calculate the direction vector
+            self.direction = pygame.Vector2(rel_x / distance, rel_y / distance)
+            
+            # Update the position of the enemy
+            self.x += self.direction.x * self.speed * dt
+            self.y += self.direction.y * self.speed * dt
 
-        if keys[pygame.K_d] and self.x < self.world_width - 100 + 32:
-            self.x = self.x + self.speed * dt
-            self.currAnim = 2
-        if keys[pygame.K_a] and self.x > 0:
-            self.x = self.x - self.speed * dt
-            self.currAnim = 3
-        if keys[pygame.K_w] and self.y > 0:
-            self.y = self.y - self.speed * dt
-            self.currAnim = 1
-        if keys[pygame.K_s] and self.y < self.world_height - 100 + 32:
-            self.y = self.y + self.speed * dt
-            self.currAnim = 0
+        self.rect = pygame.Rect(self.x - offset_x, self.y - offset_y, self.sizeX, self.sizeY)
 
-        # Animation handling
-        if keys[pygame.K_d] or keys[pygame.K_a] or keys[pygame.K_w] or keys[pygame.K_s]:
-            if self.curr_frame_time >= 100:
-                self.curr_frame = (self.curr_frame + 1) % 4
-                self.curr_frame_time = 0
-            self.curr_frame_time += dt
-        else:
-            self.curr_frame = 3
-
-        collider_jogador = pygame.Rect(self.x + self.sizeX/2 - offset_x, self.y + self.sizeY/2 - offset_y, self.sizeX, self.sizeY)
-
-        if any(collider_jogador.colliderect(floor) for floor in self.colliders):
-            self.x = temp_x
-            self.y = temp_y
 
     def show(self, screen, offset_x, offset_y):
-        # Scaling the player image
-        current_frame = self.spriteSheet.subsurface(self.PlayerAnimations[self.currAnim])
-        scaled_frame = pygame.transform.scale(current_frame, (self.PlayerAnimations[self.currAnim].width * 2, self.PlayerAnimations[self.currAnim].height * 2))
-
-        pygame.draw.rect(screen, (0, 255, 0), pygame.Rect(self.x + self.sizeX/2 - offset_x, self.y + self.sizeY/2 - offset_y, self.sizeX, self.sizeY))
-
-        # Draw Player
-        screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
+        pygame.draw.rect(screen, self.color, self.rect)
