@@ -17,8 +17,6 @@ class Player:
         self.PlayerAnimations = []
 
         self.speed = 0.3
-        self.score = 0
-        self.life = 3
 
         self.world_width = world_width
         self.world_height = world_height
@@ -48,7 +46,7 @@ class Player:
         if keys[pygame.K_w] and self.y > 0:
             self.y = self.y - self.speed * dt
             self.currAnim = 1
-        if keys[pygame.K_s] and self.y < self.world_height - 120 + 32:
+        if keys[pygame.K_s] and self.y < self.world_height - 100 + 32:
             self.y = self.y + self.speed * dt
             self.currAnim = 0
 
@@ -93,14 +91,10 @@ class Gun:
 
         self.spriteSheet = pygame.image.load("Sprites/Gun.png")
         self.Animations = []
-        
-        self.score = 0
 
         self.shooting = False
         self.cooldown = 0
         self.angle = 0
-        
-        
 
     def Rotation(self, offset_x, offset_y):
         # Rotate the gun on its own axis
@@ -162,7 +156,7 @@ class Gun:
         current_frame = self.spriteSheet.subsurface(self.Animations[self.currAnim])
         scaled_frame = pygame.transform.scale(current_frame, (int(self.Animations[self.currAnim].width * 1.3), int(self.Animations[self.currAnim].height * 1.3)))
 
-        if(self.angle > 90) or self.angle < -90:
+        if self.angle > 90 or self.angle < -90:
             scaled_frame = pygame.transform.flip(scaled_frame, False, True)
 
         self.rotated_image = pygame.transform.rotate(scaled_frame, self.angle)
@@ -188,6 +182,8 @@ class Bullet(pygame.sprite.Sprite):
         # Check if the bullet's lifetime has exceeded and remove it
         if pygame.time.get_ticks() - self.spawn_time >= self.lifetime:
             self.kill()  # Remove the sprite from all groups
+
+
 
 class Enemy:
     def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders):

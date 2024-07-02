@@ -2,7 +2,7 @@ import pygame, sys, Classes
 from pygame.locals import QUIT
 
 # Constants
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 1000, 700
 WORLD_WIDTH, WORLD_HEIGHT = 1100, 1300
 
 # Set up display
@@ -14,7 +14,7 @@ camera = pygame.Rect(0, 0, WIDTH, HEIGHT)
 offset_x, offset_y = 0, 0
 
 # Load assets (assuming these files are in the same directory)
-tileset = pygame.image.load("Tiles/t.png")
+tileset = pygame.image.load("Tiles/Dungeon_Tileset.png")
 tileProp = pygame.image.load("Tiles/props.png")
 colliders = []
 
@@ -35,30 +35,45 @@ def read(file_path):
     return pattern
 
 def draw_tiles(screen):
-    g = tileset.subsurface(pygame.Rect(0, 0, 32, 32))
-    f = tileset.subsurface(pygame.Rect(32 * 7, 0, 32, 32))
-    r = tileset.subsurface(pygame.Rect(32, 32 * 5, 32, 32))
-    box = tileProp.subsurface(pygame.Rect(32 * 3, 32, 32, 32))
+    g = tileset.subsurface(pygame.Rect(32, 0, 32, 32)) #Top
+    f = tileset.subsurface(pygame.Rect(0, 32, 32, 32)) #Left
+    r = tileset.subsurface(pygame.Rect(32 * 2, 32, 32, 32)) # Right
+    b = tileset.subsurface(pygame.Rect(32, 32 * 2, 32, 16)) # Corner Bottom Right
+    
+    c1 = tileset.subsurface(pygame.Rect(0, 0, 32, 32)) # Corner Top Left
+    c2 = tileset.subsurface(pygame.Rect(32 * 2, 0, 32, 32)) # Corner Top Right
+
+    c3 = tileset.subsurface(pygame.Rect(0, 32 * 2, 32, 16)) # Corner Bottom Left
+    c4 = tileset.subsurface(pygame.Rect(32 * 2, 32 * 2, 32, 16)) # Corner Bottom Right
+
+    floor = tileset.subsurface(pygame.Rect(32, 32, 32, 32)) # Floor
 
     tile_images = {
         'G': pygame.transform.scale(g, (g.get_width() * 2, g.get_height() * 2)),
         'F': pygame.transform.scale(f, (f.get_width() * 2, f.get_height() * 2)),
         'R': pygame.transform.scale(r, (r.get_width() * 2, r.get_height() * 2)),
-        'B': pygame.transform.scale(box, (box.get_width() * 2, box.get_height() * 2)),
+        'B': pygame.transform.scale(b, (r.get_width() * 2, r.get_height())),
+        
+        'Q': pygame.transform.scale(c1, (r.get_width() * 2, r.get_height() * 2)),
+        'W': pygame.transform.scale(c2, (r.get_width() * 2, r.get_height() * 2)),
+        'E': pygame.transform.scale(c3, (r.get_width() * 2, r.get_height())),
+        'S': pygame.transform.scale(c4, (r.get_width() * 2, r.get_height())),
+
+        'V': pygame.transform.scale(floor, (r.get_width() * 2, r.get_height() * 2)),
     }
 
     colliders.clear()
-    for y, row in enumerate(tile_map):
+    for y, row in enumerate(tile_floor):
         for x, tile in enumerate(row):
             if tile in tile_images:
                 screen.blit(tile_images[tile], (x * 64 - offset_x, y * 64 - offset_y))
-    
-    for y, row in enumerate(prop_map):
+
+    for y, row in enumerate(tile_map):
         for x, tile in enumerate(row):
             if tile in tile_images:
-                if tile == 'B':
+                    colliders.append(pygame.Rect(x * 64 - offset_x, y * 64 - offset_y, 32, 32))
                     screen.blit(tile_images[tile], (x * 64 - offset_x, y * 64 - offset_y))
-                    colliders.append(pygame.Rect(x * 64 - offset_x, y * 64 - offset_y, 64, 64))
+    
     
 def cameraUpdate(player):
     global camera
@@ -85,21 +100,27 @@ def draw_heart(screen, qtdHearts):
         yHeart += 50
         
 def load():
-    global PlayerX, tile_map, prop_map, Gun
+    global PlayerX, tile_map, prop_map, Gun, bullets, tile_floor
 
     PlayerX = Classes.Player(65, 65, 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders)  # Initialize player with proper size and position
     
     Gun = Classes.Gun(PlayerX)
-    
+
     pygame.mixer.music.load("sound/music.wav")
     pygame.mixer.music.play(-1)
-    
+   
+    bullets = pygame.sprite.Group()
+
     tile_map = read('map.txt')
+    tile_floor = read('floorMapping.txt')
     prop_map = read('propMap.txt')
 
 def update(dt):
     PlayerX.handle(dt, offset_x, offset_y)
-    Gun.handle(dt, offset_x, offset_y)
+
+    Gun.handle(dt, offset_x, offset_y, bullets)
+    bullets.update(dt)
+    
     cameraUpdate(PlayerX)
     draw(screen)
 
@@ -112,6 +133,7 @@ def draw(screen):
 
     draw_tiles(screen)
     PlayerX.show(screen, offset_x, offset_y)
+    bullets.draw(screen)
     Gun.show(screen, offset_x, offset_y)
 
     draw_score(screen, PlayerX.score)
@@ -129,6 +151,8 @@ while True:
             sys.exit()
         if pygame.key.get_pressed()[pygame.K_r]:
             load()
+
+    #print(bullets)
 
     clock.tick(60)
     dt = clock.get_time()
