@@ -26,11 +26,11 @@ heart_image = pygame.image.load("Sprites/heart.png")
 heart_image = pygame.transform.scale(heart_image, (40, 40))
 
 
-fonteObjective = pygame.font.Font("Bodoni 72 OS.ttc", 48)
+fonteObjective = pygame.font.Font("Bodoni 72 OS.ttc", 28)
 fonteScore = pygame.font.Font("Bodoni 72 OS.ttc", 40)
+fonteGameOver = pygame.font.Font("Bodoni 72 OS.ttc", 80)
 
 clock = pygame.time.Clock()
-
 
 some_other_rect = pygame.Rect(WIDTH // 2 + 20, HEIGHT // 2 + 20, 50, 50)
 
@@ -71,11 +71,11 @@ def draw_tiles(screen):
     for y, row in enumerate(tile_map):
         for x, tile in enumerate(row):
             if tile in tile_images:
-                    if tile == 'v':
-                        screen.blit(tile_images[tile], (x * 64 - offset_x, y * 64 - offset_y))
-                    else:
-                        colliders.append(pygame.Rect(x * 64 - offset_x, y * 64 - offset_y, 32, 32))
-                        screen.blit(tile_images[tile], (x * 64 - offset_x, y * 64 - offset_y))
+                if tile == 'v':
+                    screen.blit(tile_images[tile], (x * 64 - offset_x, y * 64 - offset_y))
+                else:
+                    colliders.append(pygame.Rect(x * 64 - offset_x, y * 64 - offset_y, 32, 32))
+                    screen.blit(tile_images[tile], (x * 64 - offset_x, y * 64 - offset_y))
     
 def cameraUpdate(player):
     global camera
@@ -91,7 +91,7 @@ def draw_score(screen):
 def draw_objective(screen):
     global fonteObjective
     
-    score_text = fonteObjective.render("Kill 10 enemies to win", True, (142, 195, 245))
+    score_text = fonteObjective.render("%s enemies remaining in this wave" %str(len(Enemies)), True, (142, 195, 245))
     screen.blit(score_text, (250, 10))
     
 def draw_heart(screen, qtdHearts):
@@ -100,9 +100,6 @@ def draw_heart(screen, qtdHearts):
     for i in range(qtdHearts):
         screen.blit(heart_image, (yHeart, 10))
         yHeart += 50
-     
-
-
 
 def waves():
     global waveCount
@@ -113,21 +110,19 @@ def waves():
 def spawn():
     print(f"Wave: {waveCount}")
     num = waveCount * 2
-    min_distance_from_player = 100
-    max_attempts = 1000  # Maximum attempts to find a valid spawn location
 
+    min_distance_from_player = 300
+    max_attempts = 1000
     for _ in range(num):
-        for enemy_type in [Classes.Enemy(random.randint(32, WIDTH-32), random.randint(32, HEIGHT-32), 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders, PlayerX, bullets, 2, pygame.image.load("Sprites/Walk.png"), (255, 255, 0)),
-                           Classes.Enemy(random.randint(32, WIDTH-32), random.randint(32, HEIGHT-32), 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders, PlayerX, bullets, 1, pygame.image.load("Sprites/Walk.png"), (0, 255, 0))]:
+        for enemy_type in [Classes.Enemy(random.randint(32, WIDTH-32), random.randint(32, HEIGHT-32), 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders, PlayerX, bullets, 3, esqueleto, 0.1), 
+                           Classes.Enemy(random.randint(32, WIDTH-32), random.randint(32, HEIGHT-32), 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders, PlayerX, bullets, 2, morcego, 0.15)]:
             
             attempts = 0
             while attempts < max_attempts:
                 x = random.randint(32, WIDTH - 32)
                 y = random.randint(32, HEIGHT - 32)
                 
-                # Check if the enemy is far enough from the player
-                if ((x - PlayerX.collider_jogador.x) ** 2 + (y - PlayerX.collider_jogador.y) ** 2) ** 0.5 >= min_distance_from_player:
-                    # Check if the enemy is not overlapping with other enemies
+                if ((x - PlayerX.collider_jogador.x) and (y - PlayerX.collider_jogador.y)) >= min_distance_from_player:
                     enemy_rect = pygame.Rect(x, y, 32, 32)
                     if not any(enemy_rect.colliderect(e.rect) for e in Enemies):
                         enemy_type.rect.topleft = (x, y)
@@ -139,23 +134,48 @@ def spawn():
                 print("Warning: Could not find a valid spawn location for an enemy.")
 
 def load():
-    global PlayerX, tile_map, prop_map, Gun, bullets, tile_floor, Enemies, waveCount
+    global PlayerX, tile_map, prop_map, Gun, bullets, tile_floor, Enemies, waveCount, game_over
     waveCount = 1
 
     Enemies = []
     
-    PlayerX = Classes.Player(65, 65, 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders, Enemies, 3)  # Initialize player with proper size and position
+    PlayerX = Classes.Player(WIDTH/2, HEIGHT/2, 32, 32, WORLD_WIDTH, WORLD_HEIGHT, colliders, Enemies, 3)  # Initialize player with proper size and position
     
+    global esqueleto, morcego
+    esqueleto = [pygame.image.load("Sprites/S1.png"), pygame.image.load("Sprites/S2.png"), pygame.image.load("Sprites/S3.png"), pygame.image.load("Sprites/S4.png")]
+    morcego = [pygame.image.load("Sprites/M1.png"), pygame.image.load("Sprites/M2.png"), pygame.image.load("Sprites/M3.png"), pygame.image.load("Sprites/M4.png")]
+
     Gun = Classes.Gun(PlayerX)
     bullets = pygame.sprite.Group()
     tile_map = read('map.txt')
     
     spawn()
         
-    #tile_floor = read('floorMapping.txt')
-    #prop_map = read('propMap.txt')
+    pygame.mixer.music.load("music.wav")
+    pygame.mixer.music.play(-1)
+    game_over = False
+
+def check_game_over():
+    global game_over
+    if PlayerX.life <= 0:
+        game_over = True
+
+def show_game_over(screen):
+    global fonteGameOver
+    game_over_text = fonteGameOver.render("YOU DIED", True, (255, 0, 0))
+    wave_text = fonteGameOver.render("Wave: " + str(waveCount), True, (255, 255, 255))
+    restart_text = fonteScore.render("Press R to restart", True, (255, 255, 255))
+    
+    screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - game_over_text.get_height() // 2 - 40))
+    screen.blit(wave_text, (WIDTH // 2 - wave_text.get_width() // 2, HEIGHT // 2 - wave_text.get_height() // 2 + 40))
+    screen.blit(restart_text, (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2 - restart_text.get_height() // 2 + 120))
+    
+    pygame.display.flip()
 
 def update(dt):
+    if game_over:
+        return
+
     PlayerX.handle(dt, offset_x, offset_y)
 
     Gun.handle(dt, offset_x, offset_y, bullets)
@@ -168,13 +188,13 @@ def update(dt):
             enemy.handle(dt, offset_x, offset_y)
         
             if(enemy.life <= 0):
-                print('sa')
                 Enemies.remove(enemy)
     else:
         waves()
 
     cameraUpdate(PlayerX)
     draw(screen)
+    check_game_over()
 
 def draw(screen):
     global offset_x, offset_y
@@ -189,12 +209,13 @@ def draw(screen):
     bullets.draw(screen)
     Gun.show(screen, offset_x, offset_y)
 
+    for enemy in Enemies:
+        enemy.show(screen, offset_x, offset_y)
+
+
     draw_score(screen)
     draw_heart(screen, PlayerX.life)
     draw_objective(screen)
-
-    for enemy in Enemies:
-        enemy.show(screen, offset_x, offset_y)
 
     pygame.display.flip()
 
@@ -208,8 +229,11 @@ while True:
         if pygame.key.get_pressed()[pygame.K_r]:
             load()
 
-
     clock.tick(60)
     dt = clock.get_time()
     update(dt)
-    pygame.display.update()
+    
+    if game_over:
+        show_game_over(screen)
+    else:
+        pygame.display.update()

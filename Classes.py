@@ -24,6 +24,9 @@ class Player:
         self.Enemies = Enemies
 
         self.life = life
+        self.invincible = False
+        self.invincible_start_time = 0
+        self.invincible_duration = 3000  # 3 seconds
         
         self.collider_jogador = pygame.Rect(self.x, self.y, self.sizeX, self.sizeY)
     
@@ -71,24 +74,34 @@ class Player:
             self.y = temp_y
         
         for enemy in self.Enemies:
-            if self.collider_jogador.colliderect(enemy.rect):
-                self.life -= 1
-                '''
-                if(self.x > 64 and self.x < self.world_width - 100 + 64):
-                    self.x += enemy.direction.x * 50
-                
-                if(self.y > 64 and self.y < self.world_height - 120 + 64):
-                    self.y += enemy.direction.y * 50
-                '''
+            if self.collider_jogador.colliderect(enemy.rect) and not self.invincible:
+                self.Hit()
+
+        # Check if invincibility should end
+        if self.invincible and pygame.time.get_ticks() - self.invincible_start_time >= self.invincible_duration:
+            self.invincible = False
+
+    def Hit(self):
+        # Take 1 life point
+        self.life -= 1
+
+        # Start invincibility
+        self.invincible = True
+        self.invincible_start_time = pygame.time.get_ticks()
+
     def show(self, screen, offset_x, offset_y):
         # Scaling the player image
         current_frame = self.spriteSheet.subsurface(self.PlayerAnimations[self.currAnim])
         scaled_frame = pygame.transform.scale(current_frame, (self.PlayerAnimations[self.currAnim].width * 2, self.PlayerAnimations[self.currAnim].height * 2))
 
-        pygame.draw.rect(screen, (0, 255, 0), self.collider_jogador)
+        # Blink effect for invincibility
+        if self.invincible:
+            if (pygame.time.get_ticks() // 200) % 2 == 0:  # Blink every 200 ms
+                screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
+        else:
+            screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
 
-        # Draw Player
-        screen.blit(scaled_frame, (self.x - offset_x, self.y - offset_y))
+        #pygame.draw.rect(screen, (0, 255, 0), self.collider_jogador)
 
 class Gun:
     def __init__(self, Player):
@@ -199,7 +212,7 @@ class Bullet(pygame.sprite.Sprite):
             for i in rect:
                 if self.rect.colliderect(i):
                     if type(i) == Enemy: 
-                        i.life -= 1
+                        i.get_hit()
 
                     self.kill()  # Remove the bullet if it collides with any rect
                     break
@@ -208,47 +221,55 @@ class Bullet(pygame.sprite.Sprite):
         if pygame.time.get_ticks() - self.spawn_time >= self.lifetime:
             self.kill()  # Remove the sprite from all groups
 
-
-
 class Enemy:
-    def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders, Player, bullets, life, sprite, color):
+    def __init__(self, x, y, sizeX, sizeY, world_width, world_height, colliders, Player, bullets, life, sprite, speed):
         self.x = x
         self.y = y
+
         self.sizeX = sizeX
         self.sizeY = sizeY
 
         self.curr_frame = 0
-        self.curr_frame_time = 0
 
-        self.currAnim = 0
-
-        self.spriteSheet = sprite
         self.PlayerAnimations = []
-        self.speed = 0.01
+
+        for img in sprite:
+            scaled_img = pygame.transform.scale(img, (self.sizeX * 2, self.sizeY * 2))
+            self.PlayerAnimations.append(scaled_img)
+
+        self.speed = speed
         self.anchor = Player
+
         self.world_width = world_width
         self.world_height = world_height
+
         self.colliders = colliders
-        self.stopping_distance = 10  # Distance at which the enemy stops to avoid overlapping
-        
-        self.tag = 'Enemy'
-        self.rect = self.rect = pygame.Rect(self.x , self.y, self.sizeX, self.sizeY)
+
+        self.stopping_distance = 32  # Distance at which the enemy stops to avoid overlapping
+
+        self.rect = pygame.Rect(self.x, self.y, 48, 48)  # Adjusted hitbox size to 48x48
         self.direction = pygame.Vector2()
+
         self.bullets = bullets
         self.life = life
-        self.color = color
+
+        self.hit = False
+        self.hit_time = 0
+        self.hit_duration = 100
+
+        self.animation_time = 150
+        self.animation_speed = 150
 
     def handle(self, dt, offset_x, offset_y):
-        
         rel_x, rel_y = 0, 0
-        
+
         # Calculate the vector to the player
         if (self.x < self.world_width - 100 + 32) and (self.x > 0):
             rel_x = self.anchor.x - 4 - self.x
 
         if (self.y < self.world_height - 120 + 32) and (self.y > 0):
             rel_y = self.anchor.y - 4 - self.y
-        
+
         # Calculate the distance to the player
         distance = math.sqrt(rel_x**2 + rel_y**2)
 
@@ -256,13 +277,41 @@ class Enemy:
         if distance > self.stopping_distance:
             # Calculate the direction vector
             self.direction = pygame.Vector2(rel_x / distance, rel_y / distance)
-            
+
             # Update the position of the enemy
             self.x += self.direction.x * self.speed * dt
             self.y += self.direction.y * self.speed * dt
 
-        self.rect = pygame.Rect(self.x - offset_x, self.y - offset_y, self.sizeX, self.sizeY)
+        # Animation handling
+        self.animation_time += dt
+        if self.animation_time > self.animation_speed:
+            self.curr_frame = (self.curr_frame + 1) % len(self.PlayerAnimations)
+            self.animation_time = 0
 
+        self.rect = pygame.Rect(self.x - offset_x, self.y - offset_y, 48, 48)  # Adjusted hitbox size to 48x48
+
+        # Handle hit effect timing
+        if self.hit:
+            self.hit_time += dt
+            if self.hit_time > self.hit_duration:
+                self.hit = False
+                self.hit_time = 0
 
     def show(self, screen, offset_x, offset_y):
-        pygame.draw.rect(screen, self.color, self.rect)
+        current_frame = self.PlayerAnimations[self.curr_frame]
+        print(self.hit)
+        if self.hit:
+            print('HIT')
+            red_overlay = pygame.Surface((self.sizeX * 1.5, self.sizeY * 1.5), pygame.SRCALPHA)  # Use SRCALPHA for transparency
+            red_overlay.fill((255, 0, 0, 128))  # Fill with red color and 50% transparency
+
+            screen.blit(current_frame, (self.x - offset_x, self.y - offset_y))
+            screen.blit(red_overlay, (self.x - offset_x, self.y - offset_y))
+        else:
+            screen.blit(current_frame, (self.x - offset_x, self.y - offset_y))
+
+    def get_hit(self):
+        self.hit = True
+        self.hit_time = 0
+        self.life -= 1
+        print(self.hit)
