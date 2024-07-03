@@ -108,7 +108,6 @@ def waves():
         spawn()
 
 def spawn():
-    print(f"Wave: {waveCount}")
     num = waveCount * 2
 
     min_distance_from_player = 300

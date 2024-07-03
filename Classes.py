@@ -299,9 +299,7 @@ class Enemy:
 
     def show(self, screen, offset_x, offset_y):
         current_frame = self.PlayerAnimations[self.curr_frame]
-        print(self.hit)
         if self.hit:
-            print('HIT')
             red_overlay = pygame.Surface((self.sizeX * 1.5, self.sizeY * 1.5), pygame.SRCALPHA)  # Use SRCALPHA for transparency
             red_overlay.fill((255, 0, 0, 128))  # Fill with red color and 50% transparency
 
@@ -314,4 +312,3 @@ class Enemy:
         self.hit = True
         self.hit_time = 0
         self.life -= 1
-        print(self.hit)
